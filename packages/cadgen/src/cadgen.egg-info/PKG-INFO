@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: cadgen
+Version: 0.1.0
+Summary: CAD generation utilities for text-to-cad
+Author-email: Alan Vo <alanvo@gmail.com>
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: build123d>=0.13
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
