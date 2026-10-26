@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "current_feature": "unfold-core",
+  "features": [
+    {
+      "id": "unfold-core",
+      "title": "cadgen.unfold core: thickness, bends, flanges, allowance, Unfolded output",
+      "status": "done",
+      "acceptance": [
+        "cadgen.unfold.unfold(shape, k_factor=0.33, kerf=0.0) -> Unfolded",
+        "Thickness detection: parallel planar face pairs vote on constant offset",
+        "Bend detection: coaxial cylindrical pairs with radius diff = thickness",
+        "Flange tree rooted at largest flat, laid into XY via bend-axis rotations",
+        "Bend allowance BA = θ·(r + K·t) or bend table",
+        "Unfolded: profile, bend_lines, bends[] with angle, direction, r_in, allowance, line, flange lengths, nearest cut/hole distance"
+      ],
+      "implementation": [
+        "packages/cadgen/src/cadgen/unfold.py"
+      ],
+      "tests": [
+        "tests/test_unfold.py"
+      ]
+    },
+    {
+      "id": "dxf-workflow",
+      "title": "$dxf skill: flat pattern of bent part workflow",
+      "status": "planned",
+      "acceptance": [
+        "SKILLS.md documents 4th workflow",
+        "references/generator-templates.md updated"
+      ],
+      "implementation": [],
+      "tests": []
+    },
+    {
+      "id": "dfm-sendcutsend-integration",
+      "title": "DFM/SendCutSend consume Unfolded.bends",
+      "status": "planned",
+      "acceptance": [
+        "$dfm sheet-metal references Unfolded.bends",
+        "$sendcutsend bend checks use Unfolded.bends"
+      ],
+      "implementation": [],
+      "tests": []
+    },
+    {
+      "id": "test-fixtures",
+      "title": "Test fixtures: u_channel_bracket folded + unfolded",
+      "status": "planned",
+      "acceptance": [
+        "models/drawings/u_channel_bracket_folded.step",
+        "models/drawings/u_channel_bracket_unfolded.step"
+      ],
+      "implementation": [],
+      "tests": []
+    }
+  ]
+}

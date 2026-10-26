@@ -1,0 +1,10 @@
+pyproject.toml
+src/cadgen/__init__.py
+src/cadgen/flatten.py
+src/cadgen/lazy.py
+src/cadgen/unfold.py
+src/cadgen.egg-info/PKG-INFO
+src/cadgen.egg-info/SOURCES.txt
+src/cadgen.egg-info/dependency_links.txt
+src/cadgen.egg-info/requires.txt
+src/cadgen.egg-info/top_level.txt
