@@ -177,8 +177,48 @@ def detect_bends(shape: Solid, thickness: float) -> list[dict]:
             u_min, u_max, v_min, v_max = surf_inner.UMin(), surf_inner.UMax(), surf_inner.VMin(), surf_inner.VMax()
             angle_rad = abs(v_max - v_min)
             
-            # Determine direction: which side material is on
-            direction = "UP"  # Placeholder
+            # Determine direction: which side material folds to
+            # Find planar faces adjacent to this bend (sharing edges with inner/outer faces)
+            inner_edges = set(inner_face.edges())
+            outer_edges = set(outer_face.edges())
+            bend_edges = inner_edges | outer_edges
+            
+            # Get all planar faces
+            planar_faces = []
+            for face in faces:
+                surf = BRepAdaptor_Surface(face.wrapped, True)
+                if surf.GetType() == GeomAbs_Plane:
+                    normal = _face_normal(face)
+                    if normal is not None:
+                        planar_faces.append((face, normal))
+            
+            # Find flanges connected to this bend
+            connected_flanges = []
+            for pf, pn in planar_faces:
+                for edge in pf.edges():
+                    if edge in bend_edges:
+                        connected_flanges.append((pf, pn))
+                        break
+            
+            # Determine fold direction from flange normals
+            # For a 90° bend, the two flanges have normals perpendicular to each other
+            # The fold direction is the cross product of bend axis and flange normal
+            direction = "UP"
+            if len(connected_flanges) >= 1:
+                # Use the first connected flange
+                flange_normal = connected_flanges[0][1]
+                axis_loc, axis_dir = axis1
+                # Cross product: axis_dir x flange_normal gives fold direction
+                # If Z component positive -> UP, negative -> DOWN
+                fold_dir = axis_dir.cross(flange_normal)
+                # Project onto the plane perpendicular to axis
+                # The fold direction is along the bend (tangent to cylinder)
+                # For a proper sheet metal bend, we check which side the flange is on
+                # relative to the bend tangent plane
+                if fold_dir.Z > 0:
+                    direction = "UP"
+                else:
+                    direction = "DOWN"
             
             bends.append({
                 "inner_face": inner_face,
@@ -274,7 +314,7 @@ def compute_bend_allowance(angle_rad: float, r_in: float, k_factor: float, thick
 
 
 def unfold_flanges(root_face: Face, adjacency: dict, bends: list[dict], 
-                   k_factor: float, bend_table: Optional[dict], kerf: float, thickness: float) -> Unfolded:
+                   k_factor: float, bend_table: Optional[dict], kerf: float, thickness: float, shape: Solid) -> Unfolded:
     """
     Unfold all flanges into XY by composing rotations about bend axes.
     Compute bend allowances and build flat profile with bend lines.
@@ -371,11 +411,87 @@ def unfold_flanges(root_face: Face, adjacency: dict, bends: list[dict],
         bend_edge = Edge(BRepBuilderAPI_MakeEdge(line_geom).Edge())
         bend_lines.append(bend_edge)
         
-        # Flange lengths (simplified)
-        flange_lengths = (10.0, 10.0)  # Placeholder
+        # Compute flange lengths: measure the extent of connected flanges along the bend axis
+        # Find planar faces connected to this bend
+        inner_edges = set(bend["inner_face"].edges())
+        outer_edges = set(bend["outer_face"].edges())
+        bend_edges = inner_edges | outer_edges
         
-        # Nearest cut distance (placeholder)
-        nearest_cut = 5.0
+        planar_faces = []
+        for face in shape.faces():
+            surf = BRepAdaptor_Surface(face.wrapped, True)
+            if surf.GetType() == GeomAbs_Plane:
+                normal = _face_normal(face)
+                if normal is not None:
+                    planar_faces.append((face, normal))
+        
+        connected_flanges = []
+        for pf, pn in planar_faces:
+            for edge in pf.edges():
+                if edge in bend_edges:
+                    connected_flanges.append(pf)
+                    break
+        
+        # Measure flange lengths along the bend axis direction
+        # Project flange vertices onto bend axis and find min/max
+        flange_lengths = (0.0, 0.0)
+        if len(connected_flanges) >= 2:
+            # For each flange, find its extent along the bend axis
+            axis_vec = axis_dir
+            flange_extents = []
+            for pf in connected_flanges[:2]:  # Take first two flanges
+                # Get vertices of the flange
+                verts = [v for v in pf.vertices()]
+                if verts:
+                    projections = [v.X * axis_vec.X + v.Y * axis_vec.Y + v.Z * axis_vec.Z for v in verts]
+                    extent = max(projections) - min(projections)
+                    flange_extents.append(extent)
+            if len(flange_extents) >= 2:
+                flange_lengths = (flange_extents[0], flange_extents[1])
+            elif len(flange_extents) == 1:
+                flange_lengths = (flange_extents[0], flange_extents[0])
+        elif len(connected_flanges) == 1:
+            # Single flange (e.g., at end of part)
+            verts = [v for v in connected_flanges[0].vertices()]
+            if verts:
+                axis_vec = axis_dir
+                projections = [v.X * axis_vec.X + v.Y * axis_vec.Y + v.Z * axis_vec.Z for v in verts]
+                extent = max(projections) - min(projections)
+                flange_lengths = (extent, 0.0)
+        
+        # Compute nearest cut distance: distance from bend tangent to nearest edge/hole
+        # For each connected flange, find edges not shared with the bend
+        # Project those edges onto the flange plane and measure distance to bend line
+        nearest_cut = float('inf')
+        bend_tangent_planes = []
+        # The bend tangent lines are at the edges of the bend faces
+        # For each bend face, the tangent is at radius distance from axis
+        inner_surf = BRepAdaptor_Surface(bend["inner_face"].wrapped, True)
+        inner_cyl = inner_surf.Cylinder()
+        r_in = inner_cyl.Radius()
+        
+        for pf in connected_flanges:
+            # Find edges of this flange that are NOT bend edges (these are cut edges)
+            for edge in pf.edges():
+                if edge not in bend_edges:
+                    # This is a cut edge or hole edge
+                    # Find its minimum distance to the bend axis line
+                    # Sample points along the edge
+                    from OCP.BRepAdaptor import BRepAdaptor_Curve
+                    from OCP.GeomAbs import GeomAbs_Line, GeomAbs_Circle
+                    curve_adaptor = BRepAdaptor_Curve(edge.wrapped, True)
+                    # For simplicity, use the edge center
+                    edge_center = Vector(edge.center().X, edge.center().Y, edge.center().Z)
+                    # Distance from point to line (bend axis)
+                    to_center = edge_center - axis_loc
+                    dist_to_axis = (to_center.cross(axis_dir)).length
+                    # Distance from bend tangent = dist_to_axis - r_in
+                    cut_dist = abs(dist_to_axis - r_in)
+                    if cut_dist < nearest_cut:
+                        nearest_cut = cut_dist
+        
+        if nearest_cut == float('inf'):
+            nearest_cut = 0.0
         
         bend_records.append(BendRecord(
             index=idx,
@@ -473,7 +589,7 @@ def unfold(shape: Solid, *, k_factor: float = 0.33, bend_table: Optional[dict] =
     root_face, adjacency = build_flange_tree(shape, bends, thickness)
     
     # 5. Unfold flanges and compute bend allowances
-    result = unfold_flanges(root_face, adjacency, bends, k_factor, bend_table, kerf, thickness)
+    result = unfold_flanges(root_face, adjacency, bends, k_factor, bend_table, kerf, thickness, shape)
     
     return result
 
