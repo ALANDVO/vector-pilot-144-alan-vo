@@ -71,6 +71,41 @@ def test_unfold_with_kerf():
     assert result.profile is not None
     # Kerf applied - just verify it doesn't crash
 
+def test_bend_table():
+    """Test bend allowance with bend table."""
+    from cadgen.unfold import unfold, compute_bend_allowance
+    
+    with BuildPart() as part:
+        Box(100, 50, 2.0)
+    
+    # Bend table: (thickness, radius, angle_deg) -> deduction
+    bend_table = {
+        (2.0, 2.0, 90.0): 3.5,  # custom deduction
+    }
+    
+    result = unfold(part.part, k_factor=0.33, bend_table=bend_table, kerf=0.0)
+    
+    assert result.profile is not None
+    assert result.bend_lines == []
+    assert result.bends == []
+    # Flat plate - bend table not used but should not crash
+
+
+def test_detect_bends_no_bends():
+    """Test bend detection on flat plate returns empty list."""
+    from cadgen.unfold import detect_thickness, detect_bends
+    
+    with BuildPart() as part:
+        Box(100, 50, 2.0)
+    
+    thickness = detect_thickness(part.part)
+    bends = detect_bends(part.part, thickness)
+    
+    assert bends == []
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
