@@ -16,3 +16,7 @@ Partial code published for continued development. Known issues: STATUS.md.
 - Bend direction detection (UP/DOWN) from adjacent flange normals
 - Flange length calculation per bend record
 - Nearest cut/hole distance from bend tangent
+
+---
+
+Alan Vo · [alanvo.net](https://alanvo.net)

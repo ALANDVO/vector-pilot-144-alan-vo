@@ -48,3 +48,6 @@ Acceptance:
 - models/drawings/u_channel_bracket_folded.step
 - models/drawings/u_channel_bracket_unfolded.step
 
+---
+
+Alan Vo · [alanvo.net](https://alanvo.net)

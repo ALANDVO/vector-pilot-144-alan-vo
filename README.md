@@ -80,3 +80,7 @@ pytest tests/test_unfold.py -v
 MIT
 
 Maintainer: Alan Vo <alanvo@gmail.com>
+
+---
+
+Alan Vo · [alanvo.net](https://alanvo.net)

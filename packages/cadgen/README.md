@@ -53,3 +53,7 @@ pip install -e .
 ```bash
 pytest ../../tests/test_unfold.py -v
 ```
+
+---
+
+Alan Vo · [alanvo.net](https://alanvo.net)
