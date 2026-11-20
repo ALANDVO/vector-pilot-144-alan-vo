@@ -1,5 +1,7 @@
 # vector-pilot-144-alan-vo — Alan Vo
 
+Current version: `1.3.0`.
+
 > Work in progress. This checkpoint may be incomplete or fail tests. See PLAN.md and STATUS.md before use.
 
 
@@ -24,7 +26,10 @@ vector-pilot-144-alan-vo/
 │   └── drawings/
 ├── PLAN.md
 ├── feature-plan.json
-└── README.md
+├── README.md
+├── SKILLS.md
+└── references/
+    └── generator-templates.md
 ```
 
 ## cadgen Package
@@ -51,6 +56,10 @@ result = unfold.unfold(part.part, k_factor=0.33, kerf=0.15)
 # result.bend_lines - list of Edges for BEND layer
 # result.bends - list of BendRecord with detailed bend info
 ```
+
+### Skills
+
+See `SKILLS.md` for the full list of skills, including the 4th workflow "$dxf skill: flat pattern of bent part workflow".
 
 ### Installation
 
