@@ -8,4 +8,7 @@ from cadgen.lazy import LazyModule
 flatten = LazyModule("cadgen.flatten")
 unfold = LazyModule("cadgen.unfold")
 
-__all__ = ["flatten", "unfold"]
+# dxf is a regular function (not lazy), imported directly
+from cadgen.dxf import dxf
+
+__all__ = ["flatten", "unfold", "dxf"]
