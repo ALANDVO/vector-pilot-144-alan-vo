@@ -209,16 +209,21 @@ def detect_bends(shape: Solid, thickness: float) -> list[dict]:
                 flange_normal = connected_flanges[0][1]
                 axis_loc, axis_dir = axis1
                 # Cross product: axis_dir x flange_normal gives fold direction
-                # If Z component positive -> UP, negative -> DOWN
+                # Determine direction by dominant component of fold vector
                 fold_dir = axis_dir.cross(flange_normal)
                 # Project onto the plane perpendicular to axis
                 # The fold direction is along the bend (tangent to cylinder)
                 # For a proper sheet metal bend, we check which side the flange is on
                 # relative to the bend tangent plane
-                if fold_dir.Z > 0:
-                    direction = "UP"
+                # Use the component with largest magnitude to determine direction,
+                # rather than assuming Z is up. This handles parts in any orientation.
+                max_comp = max(abs(fold_dir.X), abs(fold_dir.Y), abs(fold_dir.Z))
+                if max_comp == abs(fold_dir.X):
+                    direction = "UP" if fold_dir.X > 0 else "DOWN"
+                elif max_comp == abs(fold_dir.Y):
+                    direction = "UP" if fold_dir.Y > 0 else "DOWN"
                 else:
-                    direction = "DOWN"
+                    direction = "UP" if fold_dir.Z > 0 else "DOWN"
             
             bends.append({
                 "inner_face": inner_face,
